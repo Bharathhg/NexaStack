@@ -1,7 +1,7 @@
 # Microservices CI/CD — 2 Services
 
 A production-ready microservices project with two independent services, each having a Frontend (HTML/CSS/JS) and Backend (Node.js + Express), wired up through GitHub Actions CI/CD, Docker Hub, and AWS EC2.
-
+######
 ---
 
 ## 🗂️ Project Structure
