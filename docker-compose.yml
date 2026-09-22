@@ -1,0 +1,91 @@
+version: "3.9"
+
+# ============================================================
+#  LOCAL DEVELOPMENT — docker-compose.yml
+#  Run all 4 containers locally before pushing to GitHub
+#
+#  Usage:
+#    docker compose up --build       # first time
+#    docker compose up -d            # background
+#    docker compose logs -f          # follow logs
+#    docker compose down             # stop all
+# ============================================================
+
+services:
+
+  # ---- Service 1 — Backend ----
+  service-1-be:
+    build:
+      context: ./service-1/backend
+      dockerfile: Dockerfile
+    container_name: service-1-be
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+    environment:
+      NODE_ENV: development
+      PORT: "4001"
+    networks:
+      - micronet
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ---- Service 1 — Frontend ----
+  service-1-fe:
+    build:
+      context: ./service-1/frontend
+      dockerfile: Dockerfile
+    container_name: service-1-fe
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    networks:
+      - micronet
+    depends_on:
+      service-1-be:
+        condition: service_healthy
+
+  # ---- Service 2 — Backend ----
+  service-2-be:
+    build:
+      context: ./service-2/backend
+      dockerfile: Dockerfile
+    container_name: service-2-be
+    restart: unless-stopped
+    ports:
+      - "4002:4002"
+    environment:
+      NODE_ENV: development
+      PORT: "4002"
+    networks:
+      - micronet
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ---- Service 2 — Frontend ----
+  service-2-fe:
+    build:
+      context: ./service-2/frontend
+      dockerfile: Dockerfile
+    container_name: service-2-fe
+    restart: unless-stopped
+    ports:
+      - "3002:80"
+    networks:
+      - micronet
+    depends_on:
+      service-2-be:
+        condition: service_healthy
+
+networks:
+  micronet:
+    driver: bridge
+    name: microservices-network

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Service 1 - Microservices Dashboard with Module 1 and Module 2" />
+  <title>Service 1 — Microservices Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-dot s1"></span>
+        <h1>Service <span class="highlight">1</span></h1>
+      </div>
+      <nav class="nav">
+        <button class="nav-btn active" onclick="showModule(1)">Module 1</button>
+        <button class="nav-btn" onclick="showModule(2)">Module 2</button>
+      </nav>
+      <div class="status-badge" id="statusBadge">
+        <span class="pulse"></span> Live
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO BANNER -->
+  <section class="hero">
+    <div class="hero-content">
+      <p class="hero-eyebrow">Microservices Architecture</p>
+      <h2 class="hero-title">Service <span class="highlight">1</span> Dashboard</h2>
+      <p class="hero-sub">FE Developer 1 &amp; FE Developer 2 collaborate on this service. Switch modules below.</p>
+    </div>
+    <div class="hero-graphic">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+      <span class="ring-label">S1</span>
+    </div>
+  </section>
+
+  <!-- MODULE 1 -->
+  <section id="module1" class="module-section active">
+    <div class="container">
+      <div class="section-header">
+        <span class="tag">Module 1</span>
+        <h2>User Management</h2>
+        <p>FE Developer 1 — Handles user data from Service 1 Backend</p>
+      </div>
+
+      <div class="card-grid">
+        <div class="card" id="card-m1-users">
+          <div class="card-icon">👤</div>
+          <h3>Total Users</h3>
+          <p class="stat" id="m1-users">—</p>
+          <span class="card-label">Module 1 · FE Dev 1</span>
+        </div>
+        <div class="card" id="card-m1-active">
+          <div class="card-icon">✅</div>
+          <h3>Active Users</h3>
+          <p class="stat" id="m1-active">—</p>
+          <span class="card-label">Module 1 · FE Dev 1</span>
+        </div>
+        <div class="card" id="card-m1-req">
+          <div class="card-icon">📡</div>
+          <h3>API Requests</h3>
+          <p class="stat" id="m1-req">—</p>
+          <span class="card-label">Module 1 · BE Dev 2</span>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn primary" onclick="fetchModule1Data()">🔄 Refresh Data</button>
+        <button class="btn secondary" onclick="postModule1()">➕ Add User</button>
+      </div>
+
+      <div class="response-box" id="m1-response">
+        <p class="placeholder-text">Click "Refresh Data" to load Module 1 data from the backend...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 2 -->
+  <section id="module2" class="module-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="tag tag-2">Module 2</span>
+        <h2>Product Catalog</h2>
+        <p>FE Developer 2 — Handles product data from Service 1 Backend</p>
+      </div>
+
+      <div class="card-grid">
+        <div class="card" id="card-m2-products">
+          <div class="card-icon">📦</div>
+          <h3>Total Products</h3>
+          <p class="stat" id="m2-products">—</p>
+          <span class="card-label">Module 2 · FE Dev 2</span>
+        </div>
+        <div class="card" id="card-m2-instock">
+          <div class="card-icon">🏷️</div>
+          <h3>In Stock</h3>
+          <p class="stat" id="m2-instock">—</p>
+          <span class="card-label">Module 2 · FE Dev 2</span>
+        </div>
+        <div class="card" id="card-m2-orders">
+          <div class="card-icon">🛒</div>
+          <h3>Orders Today</h3>
+          <p class="stat" id="m2-orders">—</p>
+          <span class="card-label">Module 2 · BE Dev 2</span>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn primary" onclick="fetchModule2Data()">🔄 Refresh Data</button>
+        <button class="btn secondary" onclick="postModule2()">➕ Add Product</button>
+      </div>
+
+      <div class="response-box" id="m2-response">
+        <p class="placeholder-text">Click "Refresh Data" to load Module 2 data from the backend...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIPELINE STATUS -->
+  <section class="pipeline-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="tag tag-ci">CI/CD</span>
+        <h2>Pipeline Status</h2>
+        <p>Git → GitHub Actions → Docker Hub → AWS EC2</p>
+      </div>
+      <div class="pipeline">
+        <div class="pipe-step done">
+          <div class="pipe-icon">🔧</div>
+          <p>Git Commit</p>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step done">
+          <div class="pipe-icon">🐙</div>
+          <p>GitHub Actions</p>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step done">
+          <div class="pipe-icon">🐳</div>
+          <p>Docker Build</p>
+        </div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step done">
+          <div class="pipe-icon">☁️</div>
+          <p>AWS Deploy</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>Service 1 · Built with microservices architecture · FE Dev 1 &amp; FE Dev 2 · BE Dev 1 &amp; BE Dev 2</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

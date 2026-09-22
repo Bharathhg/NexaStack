@@ -1,0 +1,251 @@
+# =============================================================
+#  GitHub Actions — CI/CD Pipeline
+#  Triggers on push to main
+#  Builds & deploys Service 1 and Service 2 in parallel
+#
+#  Required GitHub Secrets:
+#    DOCKER_USERNAME  — Docker Hub username
+#    DOCKER_PASSWORD  — Docker Hub access token
+#    AWS_HOST         — EC2 public IP or hostname
+#    AWS_USER         — EC2 SSH user (e.g. ubuntu)
+#    AWS_SSH_KEY      — Contents of your .pem private key
+# =============================================================
+
+name: CI/CD — Build & Deploy Microservices
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOCKER_REGISTRY: docker.io
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+
+# ──────────────────────────────────────────────
+#  JOB 1 — SERVICE 1
+# ──────────────────────────────────────────────
+jobs:
+  build-service-1:
+    name: "🔨 Build & Push Service 1"
+    runs-on: ubuntu-latest
+
+    # Only run if service-1 files changed (or on first push)
+    if: |
+      github.event_name == 'push' &&
+      (contains(github.event.head_commit.modified, 'service-1/') ||
+       contains(github.event.head_commit.added,    'service-1/') ||
+       github.ref == 'refs/heads/main')
+
+    steps:
+      # 1. Checkout code
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Docker Buildx (multi-platform builds)
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3. Login to Docker Hub
+      - name: 🔐 Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 4. Extract metadata for tagging
+      - name: 🏷️ Docker meta — Service 1 FE
+        id: meta-s1-fe
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/service-1-fe
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🏷️ Docker meta — Service 1 BE
+        id: meta-s1-be
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/service-1-be
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # 5. Build & push Service 1 Frontend
+      - name: 🏗️ Build & Push — Service 1 Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context:   ./service-1/frontend
+          file:      ./service-1/frontend/Dockerfile
+          push:      ${{ github.ref == 'refs/heads/main' }}
+          tags:      ${{ steps.meta-s1-fe.outputs.tags }}
+          labels:    ${{ steps.meta-s1-fe.outputs.labels }}
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+
+      # 6. Build & push Service 1 Backend
+      - name: 🏗️ Build & Push — Service 1 Backend
+        uses: docker/build-push-action@v5
+        with:
+          context:   ./service-1/backend
+          file:      ./service-1/backend/Dockerfile
+          push:      ${{ github.ref == 'refs/heads/main' }}
+          tags:      ${{ steps.meta-s1-be.outputs.tags }}
+          labels:    ${{ steps.meta-s1-be.outputs.labels }}
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+
+# ──────────────────────────────────────────────
+#  JOB 2 — SERVICE 2
+# ──────────────────────────────────────────────
+  build-service-2:
+    name: "🔨 Build & Push Service 2"
+    runs-on: ubuntu-latest
+
+    if: |
+      github.event_name == 'push' &&
+      (contains(github.event.head_commit.modified, 'service-2/') ||
+       contains(github.event.head_commit.added,    'service-2/') ||
+       github.ref == 'refs/heads/main')
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 🏷️ Docker meta — Service 2 FE
+        id: meta-s2-fe
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/service-2-fe
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🏷️ Docker meta — Service 2 BE
+        id: meta-s2-be
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/service-2-be
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🏗️ Build & Push — Service 2 Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context:   ./service-2/frontend
+          file:      ./service-2/frontend/Dockerfile
+          push:      ${{ github.ref == 'refs/heads/main' }}
+          tags:      ${{ steps.meta-s2-fe.outputs.tags }}
+          labels:    ${{ steps.meta-s2-fe.outputs.labels }}
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+
+      - name: 🏗️ Build & Push — Service 2 Backend
+        uses: docker/build-push-action@v5
+        with:
+          context:   ./service-2/backend
+          file:      ./service-2/backend/Dockerfile
+          push:      ${{ github.ref == 'refs/heads/main' }}
+          tags:      ${{ steps.meta-s2-be.outputs.tags }}
+          labels:    ${{ steps.meta-s2-be.outputs.labels }}
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+
+# ──────────────────────────────────────────────
+#  JOB 3 — DEPLOY TO AWS EC2
+#  Runs after BOTH build jobs succeed
+# ──────────────────────────────────────────────
+  deploy-to-aws:
+    name: "🚀 Deploy to AWS EC2"
+    runs-on: ubuntu-latest
+    needs: [ build-service-1, build-service-2 ]
+
+    # Only deploy from main branch, not PRs
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: ⬇️ Checkout (for docker-compose.yml)
+        uses: actions/checkout@v4
+
+      # Copy docker-compose to EC2 and run pull + restart
+      - name: 🚀 Deploy via SSH to AWS EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:        ${{ secrets.AWS_HOST }}
+          username:    ${{ secrets.AWS_USER }}
+          key:         ${{ secrets.AWS_SSH_KEY }}
+          script: |
+            # Navigate to project directory (create if first deploy)
+            mkdir -p ~/microservices && cd ~/microservices
+
+            # Write the latest docker-compose with current image tags
+            cat > docker-compose.yml << 'EOF'
+            version: "3.9"
+
+            services:
+              service-1-fe:
+                image: ${{ secrets.DOCKER_USERNAME }}/service-1-fe:latest
+                container_name: service-1-fe
+                restart: unless-stopped
+                ports: ["3001:80"]
+                networks: [micronet]
+                depends_on: [service-1-be]
+
+              service-1-be:
+                image: ${{ secrets.DOCKER_USERNAME }}/service-1-be:latest
+                container_name: service-1-be
+                restart: unless-stopped
+                ports: ["4001:4001"]
+                environment:
+                  NODE_ENV: production
+                  PORT: "4001"
+                networks: [micronet]
+
+              service-2-fe:
+                image: ${{ secrets.DOCKER_USERNAME }}/service-2-fe:latest
+                container_name: service-2-fe
+                restart: unless-stopped
+                ports: ["3002:80"]
+                networks: [micronet]
+                depends_on: [service-2-be]
+
+              service-2-be:
+                image: ${{ secrets.DOCKER_USERNAME }}/service-2-be:latest
+                container_name: service-2-be
+                restart: unless-stopped
+                ports: ["4002:4002"]
+                environment:
+                  NODE_ENV: production
+                  PORT: "4002"
+                networks: [micronet]
+
+            networks:
+              micronet:
+                driver: bridge
+            EOF
+
+            # Pull latest images from Docker Hub
+            docker compose pull
+
+            # Restart containers with zero-downtime rolling update
+            docker compose up -d --remove-orphans
+
+            # Show running containers
+            docker compose ps
+
+            # Prune old unused images to save disk space
+            docker image prune -f
+
+            echo "✅ Deployment complete on $(date)"
