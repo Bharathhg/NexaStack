@@ -6,7 +6,7 @@
 
 const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:4001'
-  : '/api';  // Reverse proxy in production
+  : '';  // Nginx reverse proxy routes /api to backend
 
 // ---- Navigation ----
 function showModule(num) {

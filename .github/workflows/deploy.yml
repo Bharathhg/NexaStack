@@ -251,8 +251,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ build-service-1, build-service-2 ]
 
-    # Only deploy from main branch, not PRs
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Deploy if at least one build succeeds on main branch (services are independent)
+    if: |
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'push' &&
+      (needs.build-service-1.result == 'success' || needs.build-service-2.result == 'success')
 
     steps:
       - name: ⬇️ Checkout (for docker-compose.yml)
@@ -290,6 +294,8 @@ jobs:
                 environment:
                   NODE_ENV: production
                   PORT: "4001"
+                volumes:
+                  - service-1-data:/app/data
                 networks: [micronet]
 
               service-2-fe:
@@ -305,10 +311,16 @@ jobs:
                 container_name: service-2-be
                 restart: unless-stopped
                 ports: ["4002:4002"]
+                volumes:
+                  - service-2-data:/app/data
                 environment:
                   NODE_ENV: production
                   PORT: "4002"
                 networks: [micronet]
+
+            volumes:
+              service-1-data:
+              service-2-data:
 
             networks:
               micronet:

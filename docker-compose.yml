@@ -23,6 +23,8 @@ services:
     environment:
       NODE_ENV: development
       PORT: "4001"
+    volumes:
+      - service-1-data:/app/data
     networks:
       - micronet
     healthcheck:
@@ -59,6 +61,8 @@ services:
     environment:
       NODE_ENV: development
       PORT: "4002"
+    volumes:
+      - service-2-data:/app/data
     networks:
       - micronet
     healthcheck:
@@ -82,6 +86,10 @@ services:
     depends_on:
       service-2-be:
         condition: service_healthy
+
+volumes:
+  service-1-data:
+  service-2-data:
 
 networks:
   micronet:

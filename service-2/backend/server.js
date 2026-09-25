@@ -18,13 +18,29 @@ app.use((req, _res, next) => {
   next();
 });
 
+const db      = require('./database');
+
 // ----------------------------------------------------------------
-//  HEALTH CHECK
+//  ROOT & HEALTH CHECK
 // ----------------------------------------------------------------
+app.get('/', (_req, res) => {
+  res.json({
+    service:   SERVICE,
+    status:    'running',
+    database:  'SQLite (persistent)',
+    endpoints: {
+      health:            '/health',
+      module1_analytics: '/api/module1/analytics',
+      module2_events:    '/api/module2/events'
+    }
+  });
+});
+
 app.get('/health', (_req, res) => {
   res.json({
     service:   SERVICE,
     status:    'healthy',
+    database:  'SQLite connected',
     uptime:    process.uptime().toFixed(2) + 's',
     timestamp: new Date().toISOString()
   });
@@ -32,29 +48,25 @@ app.get('/health', (_req, res) => {
 
 // ================================================================
 //  MODULE 1 — BE Developer 1
-//  Domain: Analytics
+//  Domain: Analytics (SQLite analytics table)
 // ================================================================
-
-let analyticsState = {
-  page_views:      48230,
-  avg_session_sec: 187,
-  conversion_rate: 3.42,
-  bounce_rate:     42.1,
-  top_pages:       ['/home', '/products', '/pricing', '/about'],
-};
 
 // GET analytics summary
 app.get('/api/module1/analytics', (_req, res) => {
-  // Simulate live drift
-  analyticsState.page_views      += Math.floor(Math.random() * 50);
-  analyticsState.conversion_rate  = parseFloat((analyticsState.conversion_rate + (Math.random() * 0.2 - 0.1)).toFixed(2));
-
-  res.json({
-    service:    SERVICE,
-    module:     'module-1',
-    developer:  'BE Developer 1',
-    ...analyticsState,
-    updated_at: new Date().toISOString()
+  db.all('SELECT * FROM analytics ORDER BY id ASC', (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({
+      service:         SERVICE,
+      module:          'module-1',
+      developer:       'BE Developer 1',
+      storage:         'SQLite database',
+      page_views:      48230 + Math.floor(Math.random() * 50),
+      avg_session_sec: 187,
+      conversion_rate: 3.42,
+      bounce_rate:     42.1,
+      metrics:         rows,
+      updated_at:      new Date().toISOString()
+    });
   });
 });
 
@@ -67,73 +79,83 @@ app.post('/api/module1/analytics/export', (req, res) => {
     message:     `${report_type} report queued for export`,
     export_id:   `exp-${Date.now()}`,
     status:      'queued',
+    storage:     'SQLite database',
     estimated_s: 30
   });
 });
 
 // ================================================================
 //  MODULE 2 — BE Developer 2
-//  Domain: Event Tracking
+//  Domain: Event Tracking (SQLite events table)
 // ================================================================
-
-const events = [];
-const EVENT_TYPES = ['click', 'page_view', 'purchase', 'signup', 'error', 'logout', 'search'];
-
-// Seed some events
-for (let i = 0; i < 20; i++) {
-  events.push({
-    id:        i + 1,
-    type:      EVENT_TYPES[i % EVENT_TYPES.length],
-    user_id:   `u-${Math.floor(Math.random() * 999)}`,
-    timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-    metadata:  {}
-  });
-}
 
 let alertsFired = 3;
 
 // GET events
 app.get('/api/module2/events', (_req, res) => {
   alertsFired += Math.random() > 0.8 ? 1 : 0;
-  res.json({
-    service:      SERVICE,
-    module:       'module-2',
-    developer:    'BE Developer 2',
-    events_today: events.length,
-    alerts_fired: alertsFired,
-    event_types:  EVENT_TYPES.length,
-    recent_events: events.slice(-5)
+  db.all('SELECT * FROM events ORDER BY id DESC LIMIT 50', (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    const formatted = rows.map(r => {
+      let meta = {};
+      try { meta = JSON.parse(r.metadata || '{}'); } catch(_e) {}
+      return { ...r, metadata: meta };
+    });
+
+    db.get('SELECT COUNT(*) as total FROM events', (_e, countRow) => {
+      res.json({
+        service:       SERVICE,
+        module:        'module-2',
+        developer:     'BE Developer 2',
+        storage:       'SQLite database',
+        events_today:  countRow ? countRow.total : formatted.length,
+        alerts_fired:  alertsFired,
+        recent_events: formatted.slice(0, 5),
+        events:        formatted
+      });
+    });
   });
 });
 
 // POST log event
 app.post('/api/module2/events', (req, res) => {
-  const { type, user_id, metadata = {} } = req.body;
+  const { type, user_id = 'anonymous', metadata = {} } = req.body;
   if (!type) return res.status(400).json({ error: 'event type is required' });
 
-  const event = {
-    id:        events.length + 1,
-    type,
-    user_id:   user_id || 'anonymous',
-    timestamp: new Date().toISOString(),
-    metadata
-  };
-  events.push(event);
+  const metaStr = typeof metadata === 'object' ? JSON.stringify(metadata) : String(metadata);
+  const stmt = db.prepare('INSERT INTO events (type, user_id, metadata) VALUES (?, ?, ?)');
+  stmt.run(type, user_id, metaStr, function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    const event = {
+      id:        this.lastID,
+      type,
+      user_id,
+      timestamp: new Date().toISOString(),
+      metadata
+    };
 
-  res.status(201).json({
-    service: SERVICE,
-    module:  'module-2',
-    message: 'Event logged successfully',
-    event,
-    total_events: events.length
+    db.get('SELECT COUNT(*) as count FROM events', (_e, countRow) => {
+      res.status(201).json({
+        service:      SERVICE,
+        module:       'module-2',
+        message:      'Event logged successfully in SQLite',
+        event,
+        total_events: countRow ? countRow.count : 0
+      });
+    });
   });
+  stmt.finalize();
 });
 
 // GET event by id
 app.get('/api/module2/events/:id', (req, res) => {
-  const event = events.find(e => e.id === parseInt(req.params.id));
-  if (!event) return res.status(404).json({ error: 'Event not found' });
-  res.json({ service: SERVICE, module: 'module-2', event });
+  db.get('SELECT * FROM events WHERE id = ?', [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Event not found' });
+    let meta = {};
+    try { meta = JSON.parse(row.metadata || '{}'); } catch(_e) {}
+    res.json({ service: SERVICE, module: 'module-2', event: { ...row, metadata: meta } });
+  });
 });
 
 // ----------------------------------------------------------------

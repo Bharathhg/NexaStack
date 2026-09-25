@@ -19,43 +19,57 @@ app.use((req, _res, next) => {
   next();
 });
 
+const db      = require('./database');
+
 // ----------------------------------------------------------------
-//  HEALTH CHECK
+//  ROOT & HEALTH CHECK
 // ----------------------------------------------------------------
+app.get('/', (_req, res) => {
+  res.json({
+    service:   SERVICE,
+    status:    'running',
+    database:  'SQLite (persistent)',
+    endpoints: {
+      health:          '/health',
+      module1_users:   '/api/module1/users',
+      module2_products:'/api/module2/products'
+    }
+  });
+});
+
 app.get('/health', (_req, res) => {
   res.json({
-    service: SERVICE,
-    status:  'healthy',
-    uptime:  process.uptime().toFixed(2) + 's',
+    service:   SERVICE,
+    status:    'healthy',
+    database:  'SQLite connected',
+    uptime:    process.uptime().toFixed(2) + 's',
     timestamp: new Date().toISOString()
   });
 });
 
 // ================================================================
 //  MODULE 1 — BE Developer 1
-//  Domain: User Management
+//  Domain: User Management (SQLite users table)
 // ================================================================
 
-// In-memory user store (replace with real DB in production)
-const users = [
-  { id: 1, name: 'Alice Smith',   email: 'alice@svc1.com', role: 'admin',   active: true  },
-  { id: 2, name: 'Bob Johnson',   email: 'bob@svc1.com',   role: 'editor',  active: true  },
-  { id: 3, name: 'Carol Williams',email: 'carol@svc1.com', role: 'viewer',  active: false },
-  { id: 4, name: 'Dave Brown',    email: 'dave@svc1.com',  role: 'editor',  active: true  },
-];
 let requestCount = 0;
 
 // GET all users — Module 1
 app.get('/api/module1/users', (_req, res) => {
   requestCount++;
-  res.json({
-    service:       SERVICE,
-    module:        'module-1',
-    developer:     'BE Developer 1',
-    total_users:   users.length,
-    active_users:  users.filter(u => u.active).length,
-    api_requests:  requestCount,
-    users:         users
+  db.all('SELECT * FROM users ORDER BY id ASC', (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    const formatted = rows.map(u => ({ ...u, active: Boolean(u.active) }));
+    res.json({
+      service:       SERVICE,
+      module:        'module-1',
+      developer:     'BE Developer 1',
+      storage:       'SQLite database',
+      total_users:   formatted.length,
+      active_users:  formatted.filter(u => u.active).length,
+      api_requests:  requestCount,
+      users:         formatted
+    });
   });
 });
 
@@ -66,74 +80,89 @@ app.post('/api/module1/users', (req, res) => {
   if (!name || !email) {
     return res.status(400).json({ error: 'name and email are required' });
   }
-  const newUser = { id: users.length + 1, name, email, role, active: true };
-  users.push(newUser);
-  res.status(201).json({
-    service:   SERVICE,
-    module:    'module-1',
-    message:   'User created successfully',
-    user:      newUser,
-    total_now: users.length
+
+  const stmt = db.prepare('INSERT INTO users (name, email, role, active) VALUES (?, ?, ?, 1)');
+  stmt.run(name, email, role, function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    const newUser = { id: this.lastID, name, email, role, active: true };
+    db.get('SELECT COUNT(*) as count FROM users', (_e, countRow) => {
+      res.status(201).json({
+        service:   SERVICE,
+        module:    'module-1',
+        message:   'User created successfully in SQLite',
+        user:      newUser,
+        total_now: countRow ? countRow.count : 0
+      });
+    });
   });
+  stmt.finalize();
 });
 
 // GET single user — Module 1
 app.get('/api/module1/users/:id', (req, res) => {
-  const user = users.find(u => u.id === parseInt(req.params.id));
-  if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({ service: SERVICE, module: 'module-1', user });
+  db.get('SELECT * FROM users WHERE id = ?', [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'User not found' });
+    res.json({ service: SERVICE, module: 'module-1', user: { ...row, active: Boolean(row.active) } });
+  });
 });
 
 // ================================================================
 //  MODULE 2 — BE Developer 2
-//  Domain: Product Catalog
+//  Domain: Product Catalog (SQLite products table)
 // ================================================================
 
-const products = [
-  { id: 1, name: 'Widget Pro',    price: 29.99, stock: 150, category: 'tools'      },
-  { id: 2, name: 'Gadget Ultra',  price: 79.99, stock: 80,  category: 'electronics'},
-  { id: 3, name: 'Gizmo Plus',    price: 49.99, stock: 0,   category: 'electronics'},
-  { id: 4, name: 'Doohickey Max', price: 14.99, stock: 300, category: 'accessories'},
-  { id: 5, name: 'Thingamajig',   price: 9.99,  stock: 45,  category: 'accessories'},
-];
 let ordersToday = 12;
 
 // GET all products — Module 2
 app.get('/api/module2/products', (_req, res) => {
   ordersToday += Math.floor(Math.random() * 3);
-  res.json({
-    service:        SERVICE,
-    module:         'module-2',
-    developer:      'BE Developer 2',
-    total_products: products.length,
-    in_stock:       products.filter(p => p.stock > 0).length,
-    orders_today:   ordersToday,
-    products:       products
+  db.all('SELECT * FROM products ORDER BY id ASC', (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({
+      service:        SERVICE,
+      module:         'module-2',
+      developer:      'BE Developer 2',
+      storage:        'SQLite database',
+      total_products: rows.length,
+      in_stock:       rows.filter(p => p.stock > 0).length,
+      orders_today:   ordersToday,
+      products:       rows
+    });
   });
 });
 
 // POST create product — Module 2
 app.post('/api/module2/products', (req, res) => {
-  const { name, price, stock = 0 } = req.body;
+  const { name, price, stock = 0, category = 'general' } = req.body;
   if (!name || price === undefined) {
     return res.status(400).json({ error: 'name and price are required' });
   }
-  const product = { id: products.length + 1, name, price: parseFloat(price), stock: parseInt(stock), category: 'general' };
-  products.push(product);
-  res.status(201).json({
-    service:   SERVICE,
-    module:    'module-2',
-    message:   'Product created successfully',
-    product,
-    total_now: products.length
+
+  const stmt = db.prepare('INSERT INTO products (name, price, stock, category) VALUES (?, ?, ?, ?)');
+  stmt.run(name, parseFloat(price), parseInt(stock), category, function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    const product = { id: this.lastID, name, price: parseFloat(price), stock: parseInt(stock), category };
+    db.get('SELECT COUNT(*) as count FROM products', (_e, countRow) => {
+      res.status(201).json({
+        service:   SERVICE,
+        module:    'module-2',
+        message:   'Product created successfully in SQLite',
+        product,
+        total_now: countRow ? countRow.count : 0
+      });
+    });
   });
+  stmt.finalize();
 });
 
 // GET single product — Module 2
 app.get('/api/module2/products/:id', (req, res) => {
-  const product = products.find(p => p.id === parseInt(req.params.id));
-  if (!product) return res.status(404).json({ error: 'Product not found' });
-  res.json({ service: SERVICE, module: 'module-2', product });
+  db.get('SELECT * FROM products WHERE id = ?', [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Product not found' });
+    res.json({ service: SERVICE, module: 'module-2', product: row });
+  });
 });
 
 // ----------------------------------------------------------------

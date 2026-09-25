@@ -11,10 +11,11 @@ WORKDIR /app
 
 # Security: run as non-root
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app
 USER appuser
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY server.js .
+COPY server.js database.js ./
 
 ENV PORT=4001
 ENV NODE_ENV=production
