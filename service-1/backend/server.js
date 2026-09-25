@@ -144,10 +144,12 @@ app.use((_req, res) => res.status(404).json({ service: SERVICE, error: 'Route no
 // ----------------------------------------------------------------
 // START
 // ----------------------------------------------------------------
-app.listen(PORT, () => {
-  console.log(`✅ [${SERVICE}] Backend running on http://localhost:${PORT}`);
-  console.log(`   Module 1 (BE Dev 1): /api/module1/*`);
-  console.log(`   Module 2 (BE Dev 2): /api/module2/*`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`✅ [${SERVICE}] Backend running on http://localhost:${PORT}`);
+    console.log(`   Module 1 (BE Dev 1): /api/module1/*`);
+    console.log(`   Module 2 (BE Dev 2): /api/module2/*`);
+  });
+}
 
 module.exports = app;

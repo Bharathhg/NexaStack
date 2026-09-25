@@ -90,12 +90,9 @@ Developer pushes to main
         ▼
 GitHub Actions (.github/workflows/deploy.yml)
         │
-        ├── Job 1: Build service-1-fe + service-1-be → Docker Hub
-        ├── Job 2: Build service-2-fe + service-2-be → Docker Hub
-        │
-        └── Job 3: SSH → AWS EC2
-                  docker compose pull
-                  docker compose up -d
+        ├── 🧪 CI Service 1 (Tests)  ──► 🔨 Build & Push Service 1 ──┐
+        │                                                           ├──► 🚀 Deploy to AWS EC2
+        └── 🧪 CI Service 2 (Tests)  ──► 🔨 Build & Push Service 2 ──┘
 ```
 
 ### GitHub Secrets Setup

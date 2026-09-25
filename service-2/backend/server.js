@@ -139,10 +139,12 @@ app.get('/api/module2/events/:id', (req, res) => {
 // ----------------------------------------------------------------
 app.use((_req, res) => res.status(404).json({ service: SERVICE, error: 'Route not found' }));
 
-app.listen(PORT, () => {
-  console.log(`✅ [${SERVICE}] Backend running on http://localhost:${PORT}`);
-  console.log(`   Module 1 (BE Dev 1): /api/module1/analytics`);
-  console.log(`   Module 2 (BE Dev 2): /api/module2/events`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`✅ [${SERVICE}] Backend running on http://localhost:${PORT}`);
+    console.log(`   Module 1 (BE Dev 1): /api/module1/analytics`);
+    console.log(`   Module 2 (BE Dev 2): /api/module2/events`);
+  });
+}
 
 module.exports = app;
