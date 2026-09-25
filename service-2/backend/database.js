@@ -44,24 +44,16 @@ db.serialize(() => {
     )
   `);
 
-  // Seed default analytics if empty
+  // Ensure auto-increment restarts from 1 when tables are empty
   db.get('SELECT COUNT(*) as count FROM analytics', (err, row) => {
     if (!err && row && row.count === 0) {
-      const stmt = db.prepare('INSERT INTO analytics (metric, value, unit) VALUES (?, ?, ?)');
-      stmt.run('Daily Active Users', 1420, 'users');
-      stmt.run('Avg Response Time', 42.5, 'ms');
-      stmt.run('Error Rate', 0.12, '%');
-      stmt.finalize(() => console.log('🌱 Seeded default analytics in SQLite'));
+      db.run("DELETE FROM sqlite_sequence WHERE name = 'analytics'", () => {});
     }
   });
 
-  // Seed default events if empty
   db.get('SELECT COUNT(*) as count FROM events', (err, row) => {
     if (!err && row && row.count === 0) {
-      const stmt = db.prepare('INSERT INTO events (type, user_id, metadata) VALUES (?, ?, ?)');
-      stmt.run('user_login', 'user_1', JSON.stringify({ ip: '127.0.0.1' }));
-      stmt.run('product_view', 'user_2', JSON.stringify({ product_id: 1 }));
-      stmt.finalize(() => console.log('🌱 Seeded default events in SQLite'));
+      db.run("DELETE FROM sqlite_sequence WHERE name = 'events'", () => {});
     }
   });
 });

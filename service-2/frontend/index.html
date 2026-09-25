@@ -49,33 +49,81 @@
       <div class="section-header">
         <span class="tag">Module 1</span>
         <h2>Analytics Overview</h2>
-        <p>FE Developer 1 — Handles analytics data from Service 2 Backend</p>
+        <p>FE Developer 1 — Handles analytics data from Service 2 Backend (SQLite)</p>
       </div>
 
       <div class="card-grid">
-        <div class="card">
+        <div class="card" id="card-m1-views">
           <div class="card-icon">📊</div>
-          <h3>Page Views</h3>
-          <p class="stat" id="m1-views">—</p>
+          <h3>Total Metrics</h3>
+          <p class="stat" id="m1-metrics">0</p>
           <span class="card-label">Module 1 · FE Dev 1</span>
         </div>
-        <div class="card">
+        <div class="card" id="card-m1-session">
           <div class="card-icon">⏱️</div>
           <h3>Avg Session</h3>
-          <p class="stat" id="m1-session">—</p>
+          <p class="stat" id="m1-session">0s</p>
           <span class="card-label">Module 1 · FE Dev 1</span>
         </div>
-        <div class="card">
+        <div class="card" id="card-m1-conv">
           <div class="card-icon">📈</div>
           <h3>Conversion Rate</h3>
-          <p class="stat" id="m1-conv">—</p>
+          <p class="stat" id="m1-conv">0.0%</p>
           <span class="card-label">Module 1 · BE Dev 2</span>
         </div>
       </div>
 
-      <div class="action-bar">
-        <button class="btn primary" onclick="fetchModule1Data()">🔄 Refresh Data</button>
-        <button class="btn secondary" onclick="postModule1()">📤 Export Report</button>
+      <!-- ADD METRIC FORM -->
+      <div class="form-card">
+        <h3>➕ Add Analytics Metric</h3>
+        <form id="add-metric-form" onsubmit="postModule1Metric(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="metric-name">Metric Name</label>
+              <input type="text" id="metric-name" class="form-input" placeholder="e.g. Daily Active Users" required />
+            </div>
+            <div class="form-group">
+              <label for="metric-value">Value</label>
+              <input type="number" id="metric-value" class="form-input" step="any" placeholder="e.g. 1420" required />
+            </div>
+            <div class="form-group">
+              <label for="metric-unit">Unit</label>
+              <input type="text" id="metric-unit" class="form-input" placeholder="e.g. users, ms, %, req/s" />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" id="btn-add-metric" class="btn primary">➕ Add to Datalist</button>
+            <button type="button" id="btn-refresh-metrics" class="btn secondary" onclick="fetchModule1Data()">🔄 Refresh Data</button>
+            <button type="button" id="btn-erase-metrics" class="btn danger" onclick="resetMetrics()">🗑️ Erase All Metrics</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- METRICS TABLE -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>📊 Current Metrics</h3>
+          <span class="badge" id="metric-count-badge">0 Metrics</span>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Metric Name</th>
+                <th>Value</th>
+                <th>Unit</th>
+                <th>Last Updated</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="metrics-table-body">
+              <tr>
+                <td colspan="6" class="empty-state">No metrics in database. Use the form above to add a metric!</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="response-box" id="m1-response">
@@ -90,33 +138,90 @@
       <div class="section-header">
         <span class="tag tag-2">Module 2</span>
         <h2>Event Tracking</h2>
-        <p>FE Developer 2 — Handles event data from Service 2 Backend</p>
+        <p>FE Developer 2 — Handles event tracking data from Service 2 Backend (SQLite)</p>
       </div>
 
       <div class="card-grid">
-        <div class="card">
+        <div class="card" id="card-m2-events">
           <div class="card-icon">🎯</div>
           <h3>Events Today</h3>
-          <p class="stat" id="m2-events">—</p>
+          <p class="stat" id="m2-events">0</p>
           <span class="card-label">Module 2 · FE Dev 2</span>
         </div>
-        <div class="card">
+        <div class="card" id="card-m2-alerts">
           <div class="card-icon">🔔</div>
           <h3>Alerts Fired</h3>
-          <p class="stat" id="m2-alerts">—</p>
+          <p class="stat" id="m2-alerts">0</p>
           <span class="card-label">Module 2 · FE Dev 2</span>
         </div>
-        <div class="card">
+        <div class="card" id="card-m2-types">
           <div class="card-icon">🗂️</div>
           <h3>Event Types</h3>
-          <p class="stat" id="m2-types">—</p>
+          <p class="stat" id="m2-types">0</p>
           <span class="card-label">Module 2 · BE Dev 2</span>
         </div>
       </div>
 
-      <div class="action-bar">
-        <button class="btn primary" onclick="fetchModule2Data()">🔄 Refresh Data</button>
-        <button class="btn secondary" onclick="postModule2()">➕ Log Event</button>
+      <!-- ADD EVENT FORM -->
+      <div class="form-card">
+        <h3>➕ Add Log Event</h3>
+        <form id="add-event-form" onsubmit="postModule2Event(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="event-type">Event Type</label>
+              <select id="event-type" class="form-select">
+                <option value="USER_LOGIN">USER_LOGIN</option>
+                <option value="USER_CREATED">USER_CREATED</option>
+                <option value="PRODUCT_VIEW">PRODUCT_VIEW</option>
+                <option value="PRODUCT_CREATED">PRODUCT_CREATED</option>
+                <option value="PURCHASE">PURCHASE</option>
+                <option value="ERROR_ALERT">ERROR_ALERT</option>
+                <option value="API_CALL">API_CALL</option>
+                <option value="CUSTOM">CUSTOM</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="event-user">User ID</label>
+              <input type="text" id="event-user" class="form-input" placeholder="e.g. user_101 or admin" required />
+            </div>
+            <div class="form-group">
+              <label for="event-meta">Metadata / Details</label>
+              <input type="text" id="event-meta" class="form-input" placeholder='e.g. {"ip":"10.0.0.1"} or "Checkout completed"' />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" id="btn-add-event" class="btn primary">➕ Add to Datalist</button>
+            <button type="button" id="btn-refresh-events" class="btn secondary" onclick="fetchModule2Data()">🔄 Refresh Data</button>
+            <button type="button" id="btn-erase-events" class="btn danger" onclick="resetEvents()">🗑️ Erase All Events</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- EVENTS LIST TABLE -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>📋 Logged Events</h3>
+          <span class="badge" id="event-count-badge">0 Events</span>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Event Type</th>
+                <th>User ID</th>
+                <th>Timestamp</th>
+                <th>Metadata / Details</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="events-table-body">
+              <tr>
+                <td colspan="6" class="empty-state">No events in database. Use the form above to log an event!</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="response-box" id="m2-response">
