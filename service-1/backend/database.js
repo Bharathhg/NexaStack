@@ -45,6 +45,18 @@ db.serialize(() => {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Ensure auto-increment restarts from 1 when tables are empty
+  db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
+    if (!err && row && row.count === 0) {
+      db.run("DELETE FROM sqlite_sequence WHERE name = 'users'", () => {});
+    }
+  });
+  db.get('SELECT COUNT(*) as count FROM products', (err, row) => {
+    if (!err && row && row.count === 0) {
+      db.run("DELETE FROM sqlite_sequence WHERE name = 'products'", () => {});
+    }
+  });
 });
 
 module.exports = db;

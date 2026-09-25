@@ -144,15 +144,24 @@ app.delete('/api/module1/users/:id', (req, res) => {
   db.run('DELETE FROM users WHERE id = ?', [req.params.id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     sendEventToService2('USER_DELETED', req.params.id, {});
-    res.json({ service: SERVICE, module: 'module-1', message: 'User deleted successfully' });
+    // If table is now completely empty, reset sqlite_sequence so next ID starts at 1
+    db.get('SELECT COUNT(*) as count FROM users', (_e, countRow) => {
+      if (countRow && countRow.count === 0) {
+        db.run("DELETE FROM sqlite_sequence WHERE name = 'users'", () => {});
+      }
+      res.json({ service: SERVICE, module: 'module-1', message: 'User deleted successfully' });
+    });
   });
 });
 
 // POST reset / clear all users — Module 1
 app.post('/api/module1/reset', (_req, res) => {
-  db.run('DELETE FROM users', (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ service: SERVICE, module: 'module-1', message: 'All users deleted' });
+  db.serialize(() => {
+    db.run('DELETE FROM users');
+    db.run("DELETE FROM sqlite_sequence WHERE name = 'users'", (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ service: SERVICE, module: 'module-1', message: 'All users erased and ID sequence reset to 1' });
+    });
   });
 });
 
@@ -222,15 +231,24 @@ app.post('/api/module2/products', (req, res) => {
 app.delete('/api/module2/products/:id', (req, res) => {
   db.run('DELETE FROM products WHERE id = ?', [req.params.id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ service: SERVICE, module: 'module-2', message: 'Product deleted' });
+    // If table is now completely empty, reset sqlite_sequence so next ID starts at 1
+    db.get('SELECT COUNT(*) as count FROM products', (_e, countRow) => {
+      if (countRow && countRow.count === 0) {
+        db.run("DELETE FROM sqlite_sequence WHERE name = 'products'", () => {});
+      }
+      res.json({ service: SERVICE, module: 'module-2', message: 'Product deleted' });
+    });
   });
 });
 
 // POST reset / clear all products — Module 2
 app.post('/api/module2/reset', (_req, res) => {
-  db.run('DELETE FROM products', (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ service: SERVICE, module: 'module-2', message: 'All products deleted' });
+  db.serialize(() => {
+    db.run('DELETE FROM products');
+    db.run("DELETE FROM sqlite_sequence WHERE name = 'products'", (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ service: SERVICE, module: 'module-2', message: 'All products erased and ID sequence reset to 1' });
+    });
   });
 });
 
