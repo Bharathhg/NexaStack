@@ -71,7 +71,7 @@ function renderUsersTable(users) {
 }
 
 async function fetchModule1Data() {
-  const btn = document.querySelector('#module1 .btn.primary');
+  const btn = document.getElementById('btn-refresh-users');
   if (btn) { btn.textContent = '⏳ Loading...'; btn.disabled = true; }
 
   try {
@@ -196,7 +196,7 @@ function renderProductsTable(products) {
 }
 
 async function fetchModule2Data() {
-  const btn = document.querySelector('#module2 .btn.primary');
+  const btn = document.getElementById('btn-refresh-products');
   if (btn) { btn.textContent = '⏳ Loading...'; btn.disabled = true; }
 
   try {
