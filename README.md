@@ -90,9 +90,13 @@ Developer pushes to main
         ▼
 GitHub Actions (.github/workflows/deploy.yml)
         │
-        ├── 🧪 CI Service 1 (Tests)  ──► 🔨 Build & Push Service 1 ──┐
-        │                                                           ├──► 🚀 Deploy to AWS EC2
-        └── 🧪 CI Service 2 (Tests)  ──► 🔨 Build & Push Service 2 ──┘
+        ├── 🎨 Frontend 1 ──┐
+        │                   ├──► 🧪 CI 1 ──► 🔨 Build & Push Service 1 ──┐
+        ├── ⚙️ Backend 1  ──┘                                           │
+        │                                                               ├──► 🚀 Deploy to AWS EC2
+        ├── 🎨 Frontend 2 ──┐                                           │
+        │                   ├──► 🧪 CI 2 ──► 🔨 Build & Push Service 2 ──┘
+        └── ⚙️ Backend 2  ──┘
 ```
 
 ### GitHub Secrets Setup
