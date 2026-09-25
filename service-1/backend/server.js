@@ -52,6 +52,22 @@ app.get('/health', (_req, res) => {
 //  Domain: User Management (SQLite users table)
 // ================================================================
 
+const SERVICE_2_URL = process.env.SERVICE_2_URL || 'http://service-2-be:4002';
+
+// Inter-service REST helper: Send audit events to Service 2
+async function sendEventToService2(type, userId, metadata) {
+  try {
+    await fetch(`${SERVICE_2_URL}/api/module2/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, user_id: String(userId || 'system'), metadata })
+    });
+    console.log(`📡 [service-1 -> service-2] Event sent: ${type}`);
+  } catch (_e) {
+    // Non-blocking in case Service 2 is offline
+  }
+}
+
 let requestCount = 0;
 
 // GET all users — Module 1
@@ -59,7 +75,7 @@ app.get('/api/module1/users', (_req, res) => {
   requestCount++;
   db.all('SELECT * FROM users ORDER BY id ASC', (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
-    const formatted = rows.map(u => ({ ...u, active: Boolean(u.active) }));
+    const formatted = (rows || []).map(u => ({ ...u, active: Boolean(u.active) }));
     res.json({
       service:       SERVICE,
       module:        'module-1',
@@ -85,6 +101,10 @@ app.post('/api/module1/users', (req, res) => {
   stmt.run(name, email, role, function(err) {
     if (err) return res.status(500).json({ error: err.message });
     const newUser = { id: this.lastID, name, email, role, active: true };
+
+    // Microservice data exchange: notify Service 2
+    sendEventToService2('USER_CREATED', newUser.id, { name, email, role });
+
     db.get('SELECT COUNT(*) as count FROM users', (_e, countRow) => {
       res.status(201).json({
         service:   SERVICE,
@@ -96,6 +116,44 @@ app.post('/api/module1/users', (req, res) => {
     });
   });
   stmt.finalize();
+});
+
+// PATCH toggle user active / inactive — Module 1
+app.patch('/api/module1/users/:id/toggle', (req, res) => {
+  requestCount++;
+  db.get('SELECT * FROM users WHERE id = ?', [req.params.id], (err, user) => {
+    if (err || !user) return res.status(404).json({ error: 'User not found' });
+    const newStatus = user.active ? 0 : 1;
+    db.run('UPDATE users SET active = ? WHERE id = ?', [newStatus, req.params.id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      sendEventToService2('USER_STATUS_TOGGLED', req.params.id, { new_status: newStatus ? 'active' : 'inactive' });
+      res.json({
+        service: SERVICE,
+        module:  'module-1',
+        message: `User ${newStatus ? 'activated' : 'deactivated'} successfully`,
+        id:      parseInt(req.params.id),
+        active:  Boolean(newStatus)
+      });
+    });
+  });
+});
+
+// DELETE single user — Module 1
+app.delete('/api/module1/users/:id', (req, res) => {
+  requestCount++;
+  db.run('DELETE FROM users WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    sendEventToService2('USER_DELETED', req.params.id, {});
+    res.json({ service: SERVICE, module: 'module-1', message: 'User deleted successfully' });
+  });
+});
+
+// POST reset / clear all users — Module 1
+app.post('/api/module1/reset', (_req, res) => {
+  db.run('DELETE FROM users', (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ service: SERVICE, module: 'module-1', message: 'All users deleted' });
+  });
 });
 
 // GET single user — Module 1
@@ -112,22 +170,22 @@ app.get('/api/module1/users/:id', (req, res) => {
 //  Domain: Product Catalog (SQLite products table)
 // ================================================================
 
-let ordersToday = 12;
+let ordersToday = 0;
 
 // GET all products — Module 2
 app.get('/api/module2/products', (_req, res) => {
-  ordersToday += Math.floor(Math.random() * 3);
   db.all('SELECT * FROM products ORDER BY id ASC', (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
+    const prods = rows || [];
     res.json({
       service:        SERVICE,
       module:         'module-2',
       developer:      'BE Developer 2',
       storage:        'SQLite database',
-      total_products: rows.length,
-      in_stock:       rows.filter(p => p.stock > 0).length,
+      total_products: prods.length,
+      in_stock:       prods.filter(p => p.stock > 0).length,
       orders_today:   ordersToday,
-      products:       rows
+      products:       prods
     });
   });
 });
@@ -143,6 +201,10 @@ app.post('/api/module2/products', (req, res) => {
   stmt.run(name, parseFloat(price), parseInt(stock), category, function(err) {
     if (err) return res.status(500).json({ error: err.message });
     const product = { id: this.lastID, name, price: parseFloat(price), stock: parseInt(stock), category };
+
+    // Microservice data exchange: notify Service 2
+    sendEventToService2('PRODUCT_CREATED', product.id, { name, price, category });
+
     db.get('SELECT COUNT(*) as count FROM products', (_e, countRow) => {
       res.status(201).json({
         service:   SERVICE,
@@ -154,6 +216,22 @@ app.post('/api/module2/products', (req, res) => {
     });
   });
   stmt.finalize();
+});
+
+// DELETE single product — Module 2
+app.delete('/api/module2/products/:id', (req, res) => {
+  db.run('DELETE FROM products WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ service: SERVICE, module: 'module-2', message: 'Product deleted' });
+  });
+});
+
+// POST reset / clear all products — Module 2
+app.post('/api/module2/reset', (_req, res) => {
+  db.run('DELETE FROM products', (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ service: SERVICE, module: 'module-2', message: 'All products deleted' });
+  });
 });
 
 // GET single product — Module 2

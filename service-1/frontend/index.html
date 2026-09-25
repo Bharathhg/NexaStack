@@ -49,37 +49,89 @@
       <div class="section-header">
         <span class="tag">Module 1</span>
         <h2>User Management</h2>
-        <p>FE Developer 1 — Handles user data from Service 1 Backend</p>
+        <p>FE Developer 1 — Handles user data from Service 1 Backend (SQLite)</p>
       </div>
 
       <div class="card-grid">
         <div class="card" id="card-m1-users">
           <div class="card-icon">👤</div>
           <h3>Total Users</h3>
-          <p class="stat" id="m1-users">—</p>
+          <p class="stat" id="m1-users">0</p>
           <span class="card-label">Module 1 · FE Dev 1</span>
         </div>
         <div class="card" id="card-m1-active">
           <div class="card-icon">✅</div>
           <h3>Active Users</h3>
-          <p class="stat" id="m1-active">—</p>
+          <p class="stat" id="m1-active">0</p>
           <span class="card-label">Module 1 · FE Dev 1</span>
         </div>
         <div class="card" id="card-m1-req">
           <div class="card-icon">📡</div>
           <h3>API Requests</h3>
-          <p class="stat" id="m1-req">—</p>
+          <p class="stat" id="m1-req">0</p>
           <span class="card-label">Module 1 · BE Dev 2</span>
         </div>
       </div>
 
-      <div class="action-bar">
-        <button class="btn primary" onclick="fetchModule1Data()">🔄 Refresh Data</button>
-        <button class="btn secondary" onclick="postModule1()">➕ Add User</button>
+      <!-- ADD USER FORM -->
+      <div class="form-card">
+        <h3>➕ Add New User</h3>
+        <form id="add-user-form" onsubmit="postModule1User(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="user-name">Full Name</label>
+              <input type="text" id="user-name" class="form-input" placeholder="e.g. John Doe" required />
+            </div>
+            <div class="form-group">
+              <label for="user-email">Email Address</label>
+              <input type="email" id="user-email" class="form-input" placeholder="e.g. john@example.com" required />
+            </div>
+            <div class="form-group">
+              <label for="user-role">Role</label>
+              <select id="user-role" class="form-select">
+                <option value="viewer">Viewer</option>
+                <option value="editor">Editor</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn primary">➕ Save User</button>
+            <button type="button" class="btn secondary" onclick="fetchModule1Data()">🔄 Refresh Data</button>
+            <button type="button" class="btn danger" onclick="resetUsers()">🗑️ Erase All Users</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- USER LIST TABLE -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>👥 Current Users</h3>
+          <span class="badge" id="user-count-badge">0 Users</span>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <tr>
+                <td colspan="6" class="empty-state">No users in database. Use the form above to add a user!</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="response-box" id="m1-response">
-        <p class="placeholder-text">Click "Refresh Data" to load Module 1 data from the backend...</p>
+        <p class="placeholder-text">Click "Refresh Data" to inspect the raw JSON response from SQLite...</p>
       </div>
     </div>
   </section>
@@ -90,37 +142,95 @@
       <div class="section-header">
         <span class="tag tag-2">Module 2</span>
         <h2>Product Catalog</h2>
-        <p>FE Developer 2 — Handles product data from Service 1 Backend</p>
+        <p>FE Developer 2 — Handles product data from Service 1 Backend (SQLite)</p>
       </div>
 
       <div class="card-grid">
         <div class="card" id="card-m2-products">
           <div class="card-icon">📦</div>
           <h3>Total Products</h3>
-          <p class="stat" id="m2-products">—</p>
+          <p class="stat" id="m2-products">0</p>
           <span class="card-label">Module 2 · FE Dev 2</span>
         </div>
         <div class="card" id="card-m2-instock">
           <div class="card-icon">🏷️</div>
           <h3>In Stock</h3>
-          <p class="stat" id="m2-instock">—</p>
+          <p class="stat" id="m2-instock">0</p>
           <span class="card-label">Module 2 · FE Dev 2</span>
         </div>
         <div class="card" id="card-m2-orders">
           <div class="card-icon">🛒</div>
           <h3>Orders Today</h3>
-          <p class="stat" id="m2-orders">—</p>
+          <p class="stat" id="m2-orders">0</p>
           <span class="card-label">Module 2 · BE Dev 2</span>
         </div>
       </div>
 
-      <div class="action-bar">
-        <button class="btn primary" onclick="fetchModule2Data()">🔄 Refresh Data</button>
-        <button class="btn secondary" onclick="postModule2()">➕ Add Product</button>
+      <!-- ADD PRODUCT FORM -->
+      <div class="form-card">
+        <h3>➕ Add New Product</h3>
+        <form id="add-product-form" onsubmit="postModule2Product(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="prod-name">Product Name</label>
+              <input type="text" id="prod-name" class="form-input" placeholder="e.g. Wireless Mouse" required />
+            </div>
+            <div class="form-group">
+              <label for="prod-price">Price ($)</label>
+              <input type="number" id="prod-price" class="form-input" step="0.01" min="0" placeholder="29.99" required />
+            </div>
+            <div class="form-group">
+              <label for="prod-stock">Stock Quantity</label>
+              <input type="number" id="prod-stock" class="form-input" min="0" placeholder="50" required />
+            </div>
+            <div class="form-group">
+              <label for="prod-category">Category</label>
+              <select id="prod-category" class="form-select">
+                <option value="electronics">Electronics</option>
+                <option value="tools">Tools</option>
+                <option value="accessories">Accessories</option>
+                <option value="general">General</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn primary">➕ Save Product</button>
+            <button type="button" class="btn secondary" onclick="fetchModule2Data()">🔄 Refresh Data</button>
+            <button type="button" class="btn danger" onclick="resetProducts()">🗑️ Erase All Products</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- PRODUCT LIST TABLE -->
+      <div class="table-card">
+        <div class="table-header">
+          <h3>📦 Current Products</h3>
+          <span class="badge" id="product-count-badge">0 Products</span>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="products-table-body">
+              <tr>
+                <td colspan="7" class="empty-state">No products in database. Use the form above to add a product!</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="response-box" id="m2-response">
-        <p class="placeholder-text">Click "Refresh Data" to load Module 2 data from the backend...</p>
+        <p class="placeholder-text">Click "Refresh Data" to inspect the raw JSON response from SQLite...</p>
       </div>
     </div>
   </section>
